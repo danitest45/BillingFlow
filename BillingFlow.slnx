@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BillingFlow.Api/BillingFlow.Api.csproj" />
+  <Project Path="BillingFlow.Application/BillingFlow.Application.csproj" />
+  <Project Path="BillingFlow.Domain/BillingFlow.Domain.csproj" />
+  <Project Path="BillingFlow.Infrastructure/BillingFlow.Infrastructure.csproj" />
+</Solution>
