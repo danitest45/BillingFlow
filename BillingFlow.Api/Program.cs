@@ -4,9 +4,8 @@ using BillingFlow.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.OpenApi;
-using BillingFlow.Api.Filters;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,10 +32,13 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Cole apenas o token JWT"
+        Description = "Digite: Bearer {seu_token}"
     });
 
-    options.OperationFilter<SwaggerBearerOperationFilter>();
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
