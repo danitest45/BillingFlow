@@ -1,4 +1,5 @@
-﻿using BillingFlow.Application.DTOs.Invoices;
+﻿using BillingFlow.Application.DTOs.Common;
+using BillingFlow.Application.DTOs.Invoices;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Enums;
 using BillingFlow.Infrastructure.Persistence;
@@ -51,25 +52,116 @@ namespace BillingFlow.Infrastructure.Services
             {
                 Id = invoice.Id,
                 ClientId = invoice.ClientId,
+                ClientName = client.Name,
                 Amount = invoice.Amount,
                 DueDate = invoice.DueDate,
                 Status = invoice.Status
             };
         }
 
-        public async Task<List<InvoiceResponseDto>> GetAllAsync(Guid userId)
+        public async Task<PagedResultDto<InvoiceResponseDto>> GetAllAsync(Guid userId, InvoiceFilterRequestDto filter)
         {
-            return await _context.InvoiceRecords
-                .Where(x => x.Client.UserId == userId)
-                .Select(x => new InvoiceResponseDto
+            await UpdateOverdueInvoicesAsync(userId);
+
+            var page = filter.Page < 1 ? 1 : filter.Page;
+            var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize > 100 ? 100 : filter.PageSize;
+
+            var query = _context.InvoiceRecords
+                .AsNoTracking()
+                .Include(i => i.Client)
+                .Where(i => i.Client.UserId == userId);
+
+            if (!string.IsNullOrWhiteSpace(filter.ClientName))
+            {
+                var clientName = filter.ClientName.Trim().ToLower();
+
+                query = query.Where(i =>
+                    i.Client.Name.ToLower().Contains(clientName));
+            }
+
+            if (filter.Status.HasValue)
+            {
+                query = query.Where(i => i.Status == filter.Status.Value);
+            }
+
+            if (filter.StartDate.HasValue)
+            {
+                var startDate = DateTime.SpecifyKind(filter.StartDate.Value, DateTimeKind.Utc);
+                query = query.Where(i => i.DueDate >= startDate);
+            }
+
+            if (filter.EndDate.HasValue)
+            {
+                var endDate = DateTime.SpecifyKind(filter.EndDate.Value, DateTimeKind.Utc);
+                query = query.Where(i => i.DueDate <= endDate);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(i => i.DueDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(i => new InvoiceResponseDto
                 {
-                    Id = x.Id,
-                    ClientId = x.ClientId,
-                    Amount = x.Amount,
-                    DueDate = x.DueDate,
-                    Status = x.Status
+                    Id = i.Id,
+                    ClientId = i.ClientId,
+                    ClientName = i.Client.Name,
+                    Amount = i.Amount,
+                    DueDate = i.DueDate,
+                    Status = i.Status,
+                    PaidAt = i.PaidAt
                 })
                 .ToListAsync();
+
+            return new PagedResultDto<InvoiceResponseDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+        }
+
+        public async Task<bool> MarkAsPaidAsync(Guid userId, Guid invoiceId)
+        {
+            var invoice = await _context.InvoiceRecords
+                .Include(i => i.Client)
+                .FirstOrDefaultAsync(i =>
+                    i.Id == invoiceId &&
+                    i.Client.UserId == userId);
+
+            if (invoice == null)
+                return false;
+
+            invoice.Status = PaymentStatus.Paid;
+            invoice.PaidAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+        private async Task UpdateOverdueInvoicesAsync(Guid userId)
+        {
+            var overdueInvoices = await _context.InvoiceRecords
+                .Include(i => i.Client)
+                .Where(i =>
+                    i.Client.UserId == userId &&
+                    i.Status == PaymentStatus.Pending &&
+                    i.DueDate < DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var invoice in overdueInvoices)
+            {
+                invoice.Status = PaymentStatus.Overdue;
+            }
+
+            if (overdueInvoices.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

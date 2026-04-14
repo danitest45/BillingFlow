@@ -63,7 +63,7 @@ namespace BillingFlow.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Clients");
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("BillingFlow.Domain.Entities.InvoiceRecord", b =>
@@ -95,7 +95,7 @@ namespace BillingFlow.Infrastructure.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("InvoiceRecords");
+                    b.ToTable("InvoiceRecords", (string)null);
                 });
 
             modelBuilder.Entity("BillingFlow.Domain.Entities.User", b =>
@@ -126,7 +126,7 @@ namespace BillingFlow.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("BillingFlow.Domain.Entities.Client", b =>

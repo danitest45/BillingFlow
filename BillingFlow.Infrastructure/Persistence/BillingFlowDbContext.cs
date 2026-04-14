@@ -65,6 +65,9 @@ namespace BillingFlow.Infrastructure.Persistence
 
                 entity.Property(x => x.Status)
                     .HasConversion<int>();
+
+                entity.HasIndex(x => new { x.ClientId, x.ReferenceYear, x.ReferenceMonth })
+                    .IsUnique();
             });
 
             modelBuilder.Entity<InvoiceRecord>()

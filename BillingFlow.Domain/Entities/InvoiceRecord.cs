@@ -18,7 +18,8 @@ namespace BillingFlow.Domain.Entities
 
         public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
         public DateTime? PaidAt { get; set; }
-
+        public int ReferenceYear { get; set; }
+        public int ReferenceMonth { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

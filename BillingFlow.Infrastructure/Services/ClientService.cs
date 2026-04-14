@@ -1,4 +1,5 @@
 ﻿using BillingFlow.Application.DTOs.Clients;
+using BillingFlow.Application.DTOs.Common;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
 using BillingFlow.Infrastructure.Persistence;
@@ -48,10 +49,47 @@ namespace BillingFlow.Infrastructure.Services
             };
         }
 
-        public async Task<List<ClientResponseDto>> GetAllAsync(Guid userId)
+        public async Task<PagedResultDto<ClientResponseDto>> GetAllAsync(
+            Guid userId,
+            ClientFilterRequestDto filter)
         {
-            return await _context.Clients
-                .Where(x => x.UserId == userId)
+            var page = filter.Page < 1 ? 1 : filter.Page;
+            var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize > 100 ? 100 : filter.PageSize;
+
+            var query = _context.Clients
+                .AsNoTracking()
+                .Where(x => x.UserId == userId);
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var search = filter.Search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.Name.ToLower().Contains(search) ||
+                    x.Email.ToLower().Contains(search));
+            }
+
+            if (filter.DueDay.HasValue)
+            {
+                query = query.Where(x => x.DueDay == filter.DueDay.Value);
+            }
+
+            if (filter.MinMonthlyAmount.HasValue)
+            {
+                query = query.Where(x => x.MonthlyAmount >= filter.MinMonthlyAmount.Value);
+            }
+
+            if (filter.MaxMonthlyAmount.HasValue)
+            {
+                query = query.Where(x => x.MonthlyAmount <= filter.MaxMonthlyAmount.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new ClientResponseDto
                 {
                     Id = x.Id,
@@ -62,6 +100,15 @@ namespace BillingFlow.Infrastructure.Services
                     DueDay = x.DueDay
                 })
                 .ToListAsync();
+
+            return new PagedResultDto<ClientResponseDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
         }
 
         public async Task<ClientResponseDto> UpdateAsync(

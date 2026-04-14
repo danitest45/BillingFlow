@@ -30,11 +30,11 @@ namespace BillingFlow.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] ClientFilterRequestDto filter)
         {
             var userId = GetUserId();
 
-            var result = await _clientService.GetAllAsync(userId);
+            var result = await _clientService.GetAllAsync(userId, filter);
 
             return Ok(result);
         }

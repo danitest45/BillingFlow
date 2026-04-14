@@ -1,4 +1,5 @@
-﻿using BillingFlow.Application.Interfaces;
+﻿using BillingFlow.Application.DTOs.Invoices;
+using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,13 +30,26 @@ namespace BillingFlow.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] InvoiceFilterRequestDto filter)
         {
             var userId = GetUserId();
 
-            var result = await _invoiceService.GetAllAsync(userId);
+            var result = await _invoiceService.GetAllAsync(userId, filter);
 
             return Ok(result);
+        }
+
+        [HttpPatch("{id}/pay")]
+        public async Task<IActionResult> MarkAsPaid(Guid id)
+        {
+            var userId = GetUserId();
+
+            var success = await _invoiceService.MarkAsPaidAsync(userId, id);
+
+            if (!success)
+                return NotFound("Cobrança não encontrada.");
+
+            return Ok("Cobrança marcada como paga.");
         }
 
         private Guid GetUserId()
