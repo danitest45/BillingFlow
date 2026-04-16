@@ -3,4 +3,5 @@
   <Project Path="BillingFlow.Application/BillingFlow.Application.csproj" />
   <Project Path="BillingFlow.Domain/BillingFlow.Domain.csproj" />
   <Project Path="BillingFlow.Infrastructure/BillingFlow.Infrastructure.csproj" />
+  <Project Path="BillingFlow.Tests/BillingFlow.Tests.csproj" />
 </Solution>
