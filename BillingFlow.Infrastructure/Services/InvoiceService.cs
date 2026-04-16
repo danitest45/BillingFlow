@@ -1,6 +1,7 @@
 ﻿using BillingFlow.Application.DTOs.Common;
 using BillingFlow.Application.DTOs.Invoices;
 using BillingFlow.Application.Interfaces;
+using BillingFlow.Domain.Entities;
 using BillingFlow.Domain.Enums;
 using BillingFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -27,25 +28,41 @@ namespace BillingFlow.Infrastructure.Services
             if (client is null)
                 throw new Exception("Cliente não encontrado.");
 
+            var now = DateTime.UtcNow;
+
+            var existingInvoice = await _context.InvoiceRecords
+                .FirstOrDefaultAsync(i =>
+                    i.ClientId == client.Id &&
+                    i.ReferenceYear == now.Year &&
+                    i.ReferenceMonth == now.Month);
+
+            if (existingInvoice is not null)
+                throw new Exception("Já existe cobrança para este cliente no mês atual.");
+
+            var lastDayOfMonth = DateTime.DaysInMonth(now.Year, now.Month);
+            var dueDay = client.DueDay > lastDayOfMonth ? lastDayOfMonth : client.DueDay;
+
             var dueDate = DateTime.SpecifyKind(
-                new DateTime(
-                    DateTime.UtcNow.Year,
-                    DateTime.UtcNow.Month,
-                    client.DueDay),
+                new DateTime(now.Year, now.Month, dueDay),
                 DateTimeKind.Utc);
 
-            var invoice = new Domain.Entities.InvoiceRecord
+            var status = dueDate < now
+                ? PaymentStatus.Overdue
+                : PaymentStatus.Pending;
+
+            var invoice = new InvoiceRecord
             {
                 Id = Guid.NewGuid(),
                 ClientId = client.Id,
                 Amount = client.MonthlyAmount,
                 DueDate = dueDate,
-                Status = PaymentStatus.Pending,
+                Status = status,
+                ReferenceYear = now.Year,
+                ReferenceMonth = now.Month,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.InvoiceRecords.Add(invoice);
-
             await _context.SaveChangesAsync();
 
             return new InvoiceResponseDto
@@ -55,7 +72,8 @@ namespace BillingFlow.Infrastructure.Services
                 ClientName = client.Name,
                 Amount = invoice.Amount,
                 DueDate = invoice.DueDate,
-                Status = invoice.Status
+                Status = invoice.Status,
+                PaidAt = invoice.PaidAt
             };
         }
 
