@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Itens de Solução/">
+    <File Path=".dockerignore" />
+    <File Path="Dockerfile" />
+  </Folder>
   <Project Path="BillingFlow.Api/BillingFlow.Api.csproj" />
   <Project Path="BillingFlow.Application/BillingFlow.Application.csproj" />
   <Project Path="BillingFlow.Domain/BillingFlow.Domain.csproj" />
