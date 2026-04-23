@@ -3,6 +3,7 @@ using BillingFlow.Application.DTOs.Invoices;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
 using BillingFlow.Domain.Enums;
+using BillingFlow.Domain.Helper;
 using BillingFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,11 @@ namespace BillingFlow.Infrastructure.Services
 
         public async Task<InvoiceResponseDto> GenerateAsync(Guid userId, Guid clientId)
         {
+            var subscription = await _context.Subscriptions
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            SubscriptionAccessHelper.EnsureSubscriptionIsActive(subscription);
+
             var client = await _context.Clients
                 .FirstOrDefaultAsync(x =>
                     x.Id == clientId &&
@@ -42,9 +48,7 @@ namespace BillingFlow.Infrastructure.Services
             var lastDayOfMonth = DateTime.DaysInMonth(now.Year, now.Month);
             var dueDay = client.DueDay > lastDayOfMonth ? lastDayOfMonth : client.DueDay;
 
-            var dueDate = DateTime.SpecifyKind(
-                new DateTime(now.Year, now.Month, dueDay),
-                DateTimeKind.Utc);
+            var dueDate = new DateTime(now.Year, now.Month, dueDay, 12, 0, 0, DateTimeKind.Utc);
 
             var status = dueDate < now
                 ? PaymentStatus.Overdue

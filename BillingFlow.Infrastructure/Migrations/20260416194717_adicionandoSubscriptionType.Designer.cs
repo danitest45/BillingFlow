@@ -3,6 +3,7 @@ using System;
 using BillingFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BillingFlow.Infrastructure.Migrations
 {
     [DbContext(typeof(BillingFlowDbContext))]
-    partial class BillingFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260416194717_adicionandoSubscriptionType")]
+    partial class adicionandoSubscriptionType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,34 +106,6 @@ namespace BillingFlow.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("InvoiceRecords");
-                });
-
-            modelBuilder.Entity("BillingFlow.Domain.Entities.MessageTemplate", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ChargeTemplate")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("MessageTemplates");
                 });
 
             modelBuilder.Entity("BillingFlow.Domain.Entities.Subscription", b =>
@@ -227,17 +202,6 @@ namespace BillingFlow.Infrastructure.Migrations
                     b.Navigation("Client");
                 });
 
-            modelBuilder.Entity("BillingFlow.Domain.Entities.MessageTemplate", b =>
-                {
-                    b.HasOne("BillingFlow.Domain.Entities.User", "User")
-                        .WithOne("MessageTemplate")
-                        .HasForeignKey("BillingFlow.Domain.Entities.MessageTemplate", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("BillingFlow.Domain.Entities.Subscription", b =>
                 {
                     b.HasOne("BillingFlow.Domain.Entities.User", "User")
@@ -257,8 +221,6 @@ namespace BillingFlow.Infrastructure.Migrations
             modelBuilder.Entity("BillingFlow.Domain.Entities.User", b =>
                 {
                     b.Navigation("Clients");
-
-                    b.Navigation("MessageTemplate");
 
                     b.Navigation("Subscription");
                 });

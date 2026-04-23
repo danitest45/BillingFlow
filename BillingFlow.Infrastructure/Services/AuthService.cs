@@ -1,7 +1,9 @@
 ﻿using BillingFlow.Application.DTOs.Auth;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
+using BillingFlow.Domain.Enums;
 using BillingFlow.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -9,7 +11,6 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 
 namespace BillingFlow.Infrastructure.Services
 {
@@ -34,15 +35,32 @@ namespace BillingFlow.Infrastructure.Services
             if (existingUser is not null)
                 throw new Exception("E-mail já cadastrado.");
 
+            var now = DateTime.UtcNow;
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                CreatedAt = now
+            };
+
+            var subscription = new Subscription
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                PlanType = PlanType.Trial,
+                Status = SubscriptionStatus.Trialing,
+                MaxClients = 10,
+                StartsAt = now,
+                EndsAt = now.AddDays(7),
+                CreatedAt = now
             };
 
             _context.Users.Add(user);
+            _context.Subscriptions.Add(subscription);
+
             await _context.SaveChangesAsync();
 
             return new AuthResponseDto

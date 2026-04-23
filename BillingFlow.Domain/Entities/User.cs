@@ -17,5 +17,7 @@ namespace BillingFlow.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<Client> Clients { get; set; } = new List<Client>();
+        public Subscription? Subscription { get; set; }
+        public MessageTemplate? MessageTemplate { get; set; }
     }
 }

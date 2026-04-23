@@ -1,7 +1,10 @@
 ﻿using BillingFlow.Application.DTOs.Clients;
 using BillingFlow.Application.DTOs.Common;
+using BillingFlow.Application.Helper;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
+using BillingFlow.Domain.Enums;
+using BillingFlow.Domain.Helper;
 using BillingFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -23,6 +26,29 @@ namespace BillingFlow.Infrastructure.Services
             Guid userId,
             CreateClientRequestDto request)
         {
+
+            var subscription = await _context.Subscriptions
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            SubscriptionAccessHelper.EnsureSubscriptionIsActive(subscription);
+
+            if (subscription == null)
+                throw new Exception("Assinatura não encontrada.");
+
+            if (subscription.Status != SubscriptionStatus.Active &&
+                subscription.Status != SubscriptionStatus.Trialing)
+            {
+                throw new Exception("Assinatura inativa.");
+            }
+
+            var totalClients = await _context.Clients
+                .CountAsync(c => c.UserId == userId);
+
+            if (SubscriptionHelper.HasReachedClientLimit(totalClients, subscription))
+            {
+                throw new Exception("Você atingiu o limite de clientes do seu plano.");
+            }
+
             var client = new Client
             {
                 Id = Guid.NewGuid(),

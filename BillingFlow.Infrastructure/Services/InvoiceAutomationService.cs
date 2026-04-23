@@ -24,9 +24,15 @@ namespace BillingFlow.Infrastructure.Services
             var year = now.Year;
             var month = now.Month;
 
+            var activeUserIds = await _context.Subscriptions
+                .AsNoTracking()
+                .Where(s => s.Status == SubscriptionStatus.Active || s.Status == SubscriptionStatus.Trialing)
+                .Select(s => s.UserId)
+                .ToListAsync(cancellationToken);
+
             var clients = await _context.Clients
                 .AsNoTracking()
-                .Where(c => c.IsActive)
+                .Where(c => c.IsActive && activeUserIds.Contains(c.UserId))
                 .ToListAsync(cancellationToken);
 
             var existingInvoiceClientIds = await _context.InvoiceRecords
@@ -47,9 +53,7 @@ namespace BillingFlow.Infrastructure.Services
                 var lastDayOfMonth = DateTime.DaysInMonth(year, month);
                 var dueDay = client.DueDay > lastDayOfMonth ? lastDayOfMonth : client.DueDay;
 
-                var dueDate = DateTime.SpecifyKind(
-                    new DateTime(year, month, dueDay),
-                    DateTimeKind.Utc);
+                var dueDate = new DateTime(year, month, dueDay, 12, 0, 0, DateTimeKind.Utc);
 
                 var status = dueDate < now
                     ? PaymentStatus.Overdue
