@@ -79,8 +79,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("FrontendPolicy", policy =>
     {
         policy.WithOrigins(
-            "http://localhost:5173"
-        // depois adicionar aqui a URL da Vercel
+            "http://localhost:5173",
+            "https://billingflow-front.vercel.app"
         )
         .AllowAnyHeader()
         .AllowAnyMethod();
