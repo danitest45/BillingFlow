@@ -18,15 +18,29 @@ namespace BillingFlow.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequestDto request)
         {
-            var result = await _authService.RegisterAsync(request);
-            return Ok(result);
+            try
+            {
+                var result = await _authService.RegisterAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestDto request)
         {
-            var result = await _authService.LoginAsync(request);
-            return Ok(result);
+            try
+            {
+                var result = await _authService.LoginAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
         }
     }
 }
