@@ -10,8 +10,15 @@ namespace BillingFlow.Domain.Helper
     {
         public static bool IsSubscriptionActive(Subscription subscription)
         {
+            if (subscription.EndsAt.HasValue &&
+                subscription.EndsAt.Value <= DateTime.UtcNow)
+            {
+                return false;
+            }
+
             return subscription.Status == SubscriptionStatus.Active ||
-                   subscription.Status == SubscriptionStatus.Trialing;
+                   subscription.Status == SubscriptionStatus.Trialing ||
+                   subscription.Status == SubscriptionStatus.Canceled;
         }
 
         public static void EnsureSubscriptionIsActive(Subscription? subscription)
@@ -20,7 +27,7 @@ namespace BillingFlow.Domain.Helper
                 throw new Exception("Assinatura não encontrada.");
 
             if (!IsSubscriptionActive(subscription))
-                throw new Exception("Sua assinatura está inativa. Faça upgrade para continuar usando o BillingFlow.");
+                throw new Exception("Sua assinatura expirou. Faça upgrade para continuar usando o sistema.");
         }
     }
 }

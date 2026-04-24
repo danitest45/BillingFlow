@@ -28,6 +28,14 @@ namespace BillingFlow.Infrastructure.Services
             if (subscription == null)
                 throw new Exception("Assinatura não encontrada.");
 
+            if (subscription.EndsAt.HasValue &&
+                subscription.EndsAt.Value <= DateTime.UtcNow &&
+                subscription.Status != SubscriptionStatus.Expired)
+            {
+                subscription.Status = SubscriptionStatus.Expired;
+                await _context.SaveChangesAsync();
+            }
+
             var totalClients = await _context.Clients
                 .AsNoTracking()
                 .CountAsync(c => c.UserId == userId);

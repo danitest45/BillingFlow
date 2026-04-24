@@ -81,6 +81,18 @@ namespace BillingFlow.Infrastructure.Services
             subscription.ProviderSubscriptionId = session.SubscriptionId;
             subscription.Status = SubscriptionStatus.Active;
 
+            if (!string.IsNullOrWhiteSpace(session.SubscriptionId))
+            {
+                var stripeSubscriptionService = new Stripe.SubscriptionService();
+                var stripeSubscription = await stripeSubscriptionService.GetAsync(session.SubscriptionId);
+
+                if (stripeSubscription != null)
+                {
+                    subscription.Status = MapStripeStatus(stripeSubscription.Status);
+                    ApplyStripeSubscriptionPeriod(subscription, stripeSubscription);
+                }
+            }
+
             await _context.SaveChangesAsync();
         }
 
@@ -132,14 +144,7 @@ namespace BillingFlow.Infrastructure.Services
                 return;
 
             subscription.Status = MapStripeStatus(stripeSubscription.Status);
-
-            var firstItem = stripeSubscription.Items?.Data?.FirstOrDefault();
-
-            if (firstItem != null)
-            {
-                subscription.StartsAt = DateTime.SpecifyKind(firstItem.CurrentPeriodStart, DateTimeKind.Utc);
-                subscription.EndsAt = DateTime.SpecifyKind(firstItem.CurrentPeriodEnd, DateTimeKind.Utc);
-            }
+            ApplyStripeSubscriptionPeriod(subscription, stripeSubscription);
 
             await _context.SaveChangesAsync();
         }
@@ -174,6 +179,24 @@ namespace BillingFlow.Infrastructure.Services
                 "incomplete_expired" => SubscriptionStatus.Expired,
                 _ => SubscriptionStatus.Expired
             };
+        }
+
+        private static void ApplyStripeSubscriptionPeriod(
+            Domain.Entities.Subscription localSubscription,
+            Stripe.Subscription stripeSubscription)
+        {
+            var firstItem = stripeSubscription.Items?.Data?.FirstOrDefault();
+
+            if (firstItem == null)
+                return;
+
+            localSubscription.StartsAt = DateTime.SpecifyKind(
+                firstItem.CurrentPeriodStart,
+                DateTimeKind.Utc);
+
+            localSubscription.EndsAt = DateTime.SpecifyKind(
+                firstItem.CurrentPeriodEnd,
+                DateTimeKind.Utc);
         }
     }
 }
