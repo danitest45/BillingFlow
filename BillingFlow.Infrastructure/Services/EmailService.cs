@@ -53,5 +53,37 @@ namespace BillingFlow.Infrastructure.Services
 
             await _resend.EmailSendAsync(message);
         }
+
+        public async Task SendSupportEmailAsync(string name, string email, string subject, string messageText)
+        {
+            var safeSubject = string.IsNullOrWhiteSpace(subject)
+                ? "Nova mensagem de suporte"
+                : subject;
+
+            var message = new EmailMessage
+            {
+                From = _emailSettings.From,
+                Subject = $"Suporte CobrançaFlow - {safeSubject}",
+                HtmlBody = $@"
+            <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #111827;'>
+                <h2>Nova mensagem de suporte</h2>
+
+                <p><strong>Nome:</strong> {name}</p>
+                <p><strong>E-mail:</strong> {email}</p>
+                <p><strong>Assunto:</strong> {safeSubject}</p>
+
+                <hr />
+
+                <p><strong>Mensagem:</strong></p>
+                <p>{messageText}</p>
+            </div>"
+            };
+
+            message.To.Add(_emailSettings.SupportTo);
+
+            message.ReplyTo = email;
+
+            await _resend.EmailSendAsync(message);
+        }
     }
 }

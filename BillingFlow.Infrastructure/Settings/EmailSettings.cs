@@ -8,5 +8,6 @@ namespace BillingFlow.Infrastructure.Settings
     {
         public string From { get; set; } = string.Empty;
         public string FrontendUrl { get; set; } = string.Empty;
+        public string SupportTo { get; set; } = string.Empty;
     }
 }
