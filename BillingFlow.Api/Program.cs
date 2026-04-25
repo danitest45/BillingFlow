@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Resend;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,7 @@ builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IMessageTemplateService, MessageTemplateService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.Configure<StripeSettings>(
     builder.Configuration.GetSection("Stripe"));
@@ -86,6 +88,20 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod();
     });
 });
+
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("Email"));
+
+builder.Services.AddOptions();
+
+builder.Services.AddHttpClient<ResendClient>();
+
+builder.Services.Configure<ResendClientOptions>(options =>
+{
+    options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
+});
+
+builder.Services.AddTransient<IResend, ResendClient>();
 
 var app = builder.Build();
 

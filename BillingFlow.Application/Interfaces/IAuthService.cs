@@ -10,5 +10,7 @@ namespace BillingFlow.Application.Interfaces
         Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request);
 
         Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
+        Task ForgotPasswordAsync(ForgotPasswordRequestDto request);
+        Task ResetPasswordAsync(ResetPasswordRequestDto request);
     }
 }

@@ -3,8 +3,10 @@ using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
 using BillingFlow.Domain.Enums;
 using BillingFlow.Infrastructure.Persistence;
+using BillingFlow.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -18,13 +20,19 @@ namespace BillingFlow.Infrastructure.Services
     {
         private readonly BillingFlowDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
+        private readonly EmailSettings _emailSettings;
 
         public AuthService(
             BillingFlowDbContext context,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IEmailService emailService,
+            IOptions<EmailSettings> emailOptions)
         {
             _context = context;
             _configuration = configuration;
+            _emailService = emailService;
+            _emailSettings = emailOptions.Value;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
@@ -90,6 +98,56 @@ namespace BillingFlow.Infrastructure.Services
                 UserId = user.Id,
                 Token = GenerateJwtToken(user)
             };
+        }
+
+        public async Task ForgotPasswordAsync(ForgotPasswordRequestDto request)
+        {
+            var email = request.Email.Trim().ToLower();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
+
+            // Segurança: não revela se o e-mail existe ou não.
+            if (user == null)
+                return;
+
+            var token = Convert.ToBase64String(Guid.NewGuid().ToByteArray())
+                .Replace("+", "")
+                .Replace("/", "")
+                .Replace("=", "");
+
+            user.PasswordResetToken = token;
+            user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddMinutes(30);
+
+            await _context.SaveChangesAsync();
+
+            var resetLink = $"{_emailSettings.FrontendUrl}/reset-password?token={Uri.EscapeDataString(token)}";
+
+            await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
+        }
+
+        public async Task ResetPasswordAsync(ResetPasswordRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token))
+                throw new Exception("Token inválido.");
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
+                throw new Exception("A senha deve ter pelo menos 6 caracteres.");
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x =>
+                    x.PasswordResetToken == request.Token &&
+                    x.PasswordResetTokenExpiresAt != null &&
+                    x.PasswordResetTokenExpiresAt > DateTime.UtcNow);
+
+            if (user == null)
+                throw new Exception("Link de redefinição inválido ou expirado.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiresAt = null;
+
+            await _context.SaveChangesAsync();
         }
 
         private string GenerateJwtToken(User user)

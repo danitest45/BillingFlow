@@ -42,5 +42,37 @@ namespace BillingFlow.Api.Controllers
                 return Unauthorized(new { message = ex.Message });
             }
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto request)
+        {
+            await _authService.ForgotPasswordAsync(request);
+
+            return Ok(new
+            {
+                message = "Se esse e-mail existir, enviaremos instruções para redefinir sua senha."
+            });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto request)
+        {
+            try
+            {
+                await _authService.ResetPasswordAsync(request);
+
+                return Ok(new
+                {
+                    message = "Senha redefinida com sucesso."
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

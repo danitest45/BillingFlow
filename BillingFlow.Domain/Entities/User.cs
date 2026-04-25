@@ -15,6 +15,8 @@ namespace BillingFlow.Domain.Entities
         public string PasswordHash { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string? PasswordResetToken { get; set; }
+        public DateTime? PasswordResetTokenExpiresAt { get; set; }
 
         public ICollection<Client> Clients { get; set; } = new List<Client>();
         public Subscription? Subscription { get; set; }
