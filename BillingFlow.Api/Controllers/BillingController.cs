@@ -54,5 +54,15 @@ namespace BillingFlow.Api.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("create-subscription-update-portal-session")]
+        public async Task<IActionResult> CreateSubscriptionUpdatePortalSession()
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _billingService.CreateSubscriptionUpdatePortalSessionAsync(userId);
+
+            return Ok(result);
+        }
     }
 }

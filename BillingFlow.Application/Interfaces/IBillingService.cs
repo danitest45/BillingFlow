@@ -11,5 +11,6 @@ namespace BillingFlow.Application.Interfaces
             Guid userId,
             CreateCheckoutSessionRequestDto request);
         Task<CreateCustomerPortalSessionResponseDto> CreateCustomerPortalSessionAsync(Guid userId);
+        Task<CreateCustomerPortalSessionResponseDto> CreateSubscriptionUpdatePortalSessionAsync(Guid userId);
     }
 }

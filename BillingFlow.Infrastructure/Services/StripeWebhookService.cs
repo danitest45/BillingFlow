@@ -144,7 +144,36 @@ namespace BillingFlow.Infrastructure.Services
                 return;
 
             subscription.Status = MapStripeStatus(stripeSubscription.Status);
-            ApplyStripeSubscriptionPeriod(subscription, stripeSubscription);
+
+            var firstItem = stripeSubscription.Items?.Data?.FirstOrDefault();
+
+            if (firstItem != null)
+            {
+                subscription.StartsAt = DateTime.SpecifyKind(
+                    firstItem.CurrentPeriodStart,
+                    DateTimeKind.Utc);
+
+                subscription.EndsAt = DateTime.SpecifyKind(
+                    firstItem.CurrentPeriodEnd,
+                    DateTimeKind.Utc);
+
+                var priceId = firstItem.Price?.Id;
+
+                if (priceId == _stripeSettings.StarterPriceId)
+                {
+                    subscription.PlanType = PlanType.Starter;
+                }
+                else if (priceId == _stripeSettings.ProPriceId)
+                {
+                    subscription.PlanType = PlanType.Pro;
+                }
+                else if (priceId == _stripeSettings.AgencyPriceId)
+                {
+                    subscription.PlanType = PlanType.Agency;
+                }
+
+                subscription.MaxClients = PlanRulesHelper.GetMaxClients(subscription.PlanType);
+            }
 
             await _context.SaveChangesAsync();
         }

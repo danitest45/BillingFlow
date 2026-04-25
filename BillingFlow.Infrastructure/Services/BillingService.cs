@@ -103,5 +103,43 @@ namespace BillingFlow.Infrastructure.Services
                 Url = session.Url
             };
         }
+
+        public async Task<CreateCustomerPortalSessionResponseDto> CreateSubscriptionUpdatePortalSessionAsync(Guid userId)
+        {
+            var subscription = await _context.Subscriptions
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            if (subscription == null)
+                throw new Exception("Assinatura não encontrada.");
+
+            if (string.IsNullOrWhiteSpace(subscription.ProviderCustomerId))
+                throw new Exception("Cliente Stripe não encontrado para esta conta.");
+
+            if (string.IsNullOrWhiteSpace(subscription.ProviderSubscriptionId))
+                throw new Exception("Assinatura Stripe não encontrada para esta conta.");
+
+            var options = new Stripe.BillingPortal.SessionCreateOptions
+            {
+                Customer = subscription.ProviderCustomerId,
+                ReturnUrl = _stripeSettings.PortalReturnUrl,
+                Configuration = _stripeSettings.PortalConfigurationId,
+                FlowData = new Stripe.BillingPortal.SessionFlowDataOptions
+                {
+                    Type = "subscription_update",
+                    SubscriptionUpdate = new Stripe.BillingPortal.SessionFlowDataSubscriptionUpdateOptions
+                    {
+                        Subscription = subscription.ProviderSubscriptionId
+                    }
+                }
+            };
+
+            var service = new Stripe.BillingPortal.SessionService();
+            var session = await service.CreateAsync(options);
+
+            return new CreateCustomerPortalSessionResponseDto
+            {
+                Url = session.Url
+            };
+        }
     }
 }
