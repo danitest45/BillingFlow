@@ -76,16 +76,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // CORS
+var allowedOrigins = builder.Configuration
+    .GetSection("AllowedOrigins")
+    .Get<string[]>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:5173",
-            "https://billingflow-front.vercel.app"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins!)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
