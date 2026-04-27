@@ -11,5 +11,7 @@ namespace BillingFlow.Application.Interfaces
         Task<InvoiceResponseDto> GenerateAsync(Guid userId, Guid clientId);
         Task<PagedResultDto<InvoiceResponseDto>> GetAllAsync(Guid userId, InvoiceFilterRequestDto filter);
         Task<bool> MarkAsPaidAsync(Guid userId, Guid invoiceId);
+        Task<InvoiceResponseDto> ReplaceAsync(Guid userId, Guid clientId);
+        Task<bool> DeleteAsync(Guid userId, Guid invoiceId);
     }
 }

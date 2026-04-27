@@ -3,6 +3,7 @@ using BillingFlow.Application.DTOs.Invoices;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
 using BillingFlow.Domain.Enums;
+using BillingFlow.Domain.Exceptions;
 using BillingFlow.Domain.Helper;
 using BillingFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +44,7 @@ namespace BillingFlow.Infrastructure.Services
                     i.ReferenceMonth == now.Month);
 
             if (existingInvoice is not null)
-                throw new Exception("Já existe cobrança para este cliente no mês atual.");
+                throw new InvoiceAlreadyExistsException();
 
             var lastDayOfMonth = DateTime.DaysInMonth(now.Year, now.Month);
             var dueDay = client.DueDay > lastDayOfMonth ? lastDayOfMonth : client.DueDay;
@@ -184,6 +185,56 @@ namespace BillingFlow.Infrastructure.Services
             {
                 await _context.SaveChangesAsync();
             }
+        }
+
+        public async Task<InvoiceResponseDto> ReplaceAsync(Guid userId, Guid clientId)
+        {
+            var subscription = await _context.Subscriptions
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+
+            SubscriptionAccessHelper.EnsureSubscriptionIsActive(subscription);
+
+            var client = await _context.Clients
+                .FirstOrDefaultAsync(x =>
+                    x.Id == clientId &&
+                    x.UserId == userId);
+
+            if (client is null)
+                throw new Exception("Cliente não encontrado.");
+
+            var now = DateTime.UtcNow;
+
+            var existingInvoice = await _context.InvoiceRecords
+                .FirstOrDefaultAsync(i =>
+                    i.ClientId == client.Id &&
+                    i.ReferenceYear == now.Year &&
+                    i.ReferenceMonth == now.Month);
+
+            if (existingInvoice is not null)
+            {
+                _context.InvoiceRecords.Remove(existingInvoice);
+                await _context.SaveChangesAsync();
+            }
+
+            return await GenerateAsync(userId, clientId);
+        }
+
+        public async Task<bool> DeleteAsync(Guid userId, Guid invoiceId)
+        {
+            var invoice = await _context.InvoiceRecords
+                .Include(i => i.Client)
+                .FirstOrDefaultAsync(i =>
+                    i.Id == invoiceId &&
+                    i.Client.UserId == userId);
+
+            if (invoice is null)
+                return false;
+
+            _context.InvoiceRecords.Remove(invoice);
+
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }
