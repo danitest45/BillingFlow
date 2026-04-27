@@ -212,6 +212,9 @@ namespace BillingFlow.Infrastructure.Services
 
             if (existingInvoice is not null)
             {
+                if (existingInvoice.Status == PaymentStatus.Paid)
+                    throw new InvoiceAlreadyPaidException();
+
                 _context.InvoiceRecords.Remove(existingInvoice);
                 await _context.SaveChangesAsync();
             }
@@ -229,6 +232,9 @@ namespace BillingFlow.Infrastructure.Services
 
             if (invoice is null)
                 return false;
+
+            if (invoice.Status == PaymentStatus.Paid)
+                throw new InvoiceAlreadyPaidException();
 
             _context.InvoiceRecords.Remove(invoice);
 

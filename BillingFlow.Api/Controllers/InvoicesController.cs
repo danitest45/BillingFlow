@@ -87,6 +87,14 @@ namespace BillingFlow.Api.Controllers
                 var result = await _invoiceService.ReplaceAsync(userId, clientId);
                 return Ok(result);
             }
+            catch (InvoiceAlreadyPaidException ex)
+            {
+                return BadRequest(new
+                {
+                    code = "INVOICE_ALREADY_PAID",
+                    message = ex.Message
+                });
+            }
             catch (Exception ex)
             {
                 return BadRequest(new
@@ -99,22 +107,33 @@ namespace BillingFlow.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var userId = GetUserId();
-
-            var success = await _invoiceService.DeleteAsync(userId, id);
-
-            if (!success)
+            try
             {
-                return NotFound(new
+                var userId = GetUserId();
+
+                var success = await _invoiceService.DeleteAsync(userId, id);
+
+                if (!success)
                 {
-                    message = "Cobrança não encontrada."
+                    return NotFound(new
+                    {
+                        message = "Cobrança não encontrada."
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = "Cobrança excluída com sucesso."
                 });
             }
-
-            return Ok(new
+            catch (InvoiceAlreadyPaidException ex)
             {
-                message = "Cobrança excluída com sucesso."
-            });
+                return BadRequest(new
+                {
+                    code = "INVOICE_ALREADY_PAID",
+                    message = ex.Message
+                });
+            }
         }
     }
 }

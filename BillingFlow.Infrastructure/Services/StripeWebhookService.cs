@@ -48,6 +48,10 @@ namespace BillingFlow.Infrastructure.Services
                 case "customer.subscription.deleted":
                     await HandleCustomerSubscriptionDeletedAsync(stripeEvent);
                     break;
+
+                case "invoice.payment_failed":
+                    await HandleInvoicePaymentFailedAsync(stripeEvent);
+                    break;
             }
         }
 
@@ -208,6 +212,29 @@ namespace BillingFlow.Infrastructure.Services
                 "incomplete_expired" => SubscriptionStatus.Expired,
                 _ => SubscriptionStatus.Expired
             };
+        }
+
+        private async Task HandleInvoicePaymentFailedAsync(Event stripeEvent)
+        {
+            var invoice = stripeEvent.Data.Object as Invoice;
+
+            if (invoice == null)
+                return;
+
+            var stripeSubscriptionId = invoice.Parent?.SubscriptionDetails?.Subscription?.Id;
+
+            if (string.IsNullOrWhiteSpace(stripeSubscriptionId))
+                return;
+
+            var subscription = await _context.Subscriptions
+                .FirstOrDefaultAsync(x => x.ProviderSubscriptionId == stripeSubscriptionId);
+
+            if (subscription == null)
+                return;
+
+            subscription.Status = SubscriptionStatus.Expired;
+
+            await _context.SaveChangesAsync();
         }
 
         private static void ApplyStripeSubscriptionPeriod(
