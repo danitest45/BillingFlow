@@ -109,14 +109,14 @@ namespace BillingFlow.Infrastructure.Services
 
             if (filter.StartDate.HasValue)
             {
-                var startDate = DateTime.SpecifyKind(filter.StartDate.Value, DateTimeKind.Utc);
+                var startDate = DateTime.SpecifyKind(filter.StartDate.Value.Date, DateTimeKind.Utc);
                 query = query.Where(i => i.DueDate >= startDate);
             }
 
             if (filter.EndDate.HasValue)
             {
-                var endDate = DateTime.SpecifyKind(filter.EndDate.Value, DateTimeKind.Utc);
-                query = query.Where(i => i.DueDate <= endDate);
+                var endDate = DateTime.SpecifyKind(filter.EndDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(i => i.DueDate < endDate);
             }
 
             var totalCount = await query.CountAsync();
