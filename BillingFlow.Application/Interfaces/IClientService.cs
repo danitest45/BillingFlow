@@ -13,5 +13,6 @@ namespace BillingFlow.Application.Interfaces
         Task<PagedResultDto<ClientResponseDto>> GetAllAsync(Guid userId, ClientFilterRequestDto filter);
         Task<ClientResponseDto> UpdateAsync(Guid userId, Guid clientId, UpdateClientRequestDto request);
         Task DeleteAsync(Guid userId, Guid clientId);
+        Task<ClientBillingSummaryResponseDto> GetBillingSummaryAsync(Guid userId, Guid clientId);
     }
 }

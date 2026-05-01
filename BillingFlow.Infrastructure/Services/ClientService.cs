@@ -1,5 +1,6 @@
 ﻿using BillingFlow.Application.DTOs.Clients;
 using BillingFlow.Application.DTOs.Common;
+using BillingFlow.Application.DTOs.Invoices;
 using BillingFlow.Application.Helper;
 using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
@@ -58,7 +59,8 @@ namespace BillingFlow.Infrastructure.Services
                 Phone = request.Phone,
                 MonthlyAmount = request.MonthlyAmount,
                 DueDay = request.DueDay,
-                IsActive = true
+                IsActive = true,
+                BillingStartDate = DateTime.SpecifyKind((request.BillingStartDate ?? DateTime.UtcNow).Date,DateTimeKind.Utc)
             };
 
             _context.Clients.Add(client);
@@ -182,6 +184,112 @@ namespace BillingFlow.Infrastructure.Services
             _context.Clients.Remove(client);
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<ClientBillingSummaryResponseDto> GetBillingSummaryAsync(Guid userId, Guid clientId)
+        {
+            var client = await _context.Clients
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == clientId &&
+                    x.UserId == userId);
+
+            if (client is null)
+                throw new Exception("Cliente não encontrado.");
+
+            var now = DateTime.UtcNow;
+
+            var currentInvoice = await _context.InvoiceRecords
+                .AsNoTracking()
+                .Where(i =>
+                    i.ClientId == client.Id &&
+                    i.ReferenceYear == now.Year &&
+                    i.ReferenceMonth == now.Month)
+                .Select(i => new InvoiceResponseDto
+                {
+                    Id = i.Id,
+                    ClientId = i.ClientId,
+                    ClientName = client.Name,
+                    Amount = i.Amount,
+                    DueDate = i.DueDate,
+                    Status = i.Status,
+                    PaidAt = i.PaidAt
+                })
+                .FirstOrDefaultAsync();
+
+            var history = await _context.InvoiceRecords
+                .AsNoTracking()
+                .Where(i => i.ClientId == client.Id)
+                .OrderByDescending(i => i.DueDate)
+                .Take(12)
+                .Select(i => new InvoiceResponseDto
+                {
+                    Id = i.Id,
+                    ClientId = i.ClientId,
+                    ClientName = client.Name,
+                    Amount = i.Amount,
+                    DueDate = i.DueDate,
+                    Status = i.Status,
+                    PaidAt = i.PaidAt
+                })
+                .ToListAsync();
+
+            var nextDueDate = GetNextDueDate(client, now);
+
+            return new ClientBillingSummaryResponseDto
+            {
+                Client = new ClientBillingInfoDto
+                {
+                    Id = client.Id,
+                    Name = client.Name,
+                    Email = client.Email,
+                    Phone = client.Phone,
+                    MonthlyAmount = client.MonthlyAmount,
+                    DueDay = client.DueDay,
+                    BillingCycle = client.BillingCycle,
+                    BillingStartDate = client.BillingStartDate
+                },
+                CurrentInvoice = currentInvoice,
+                NextDueDate = nextDueDate,
+                History = history
+            };
+        }
+
+        private static DateTime BuildDueDate(int year, int month, int dueDay)
+        {
+            var lastDayOfMonth = DateTime.DaysInMonth(year, month);
+            var safeDueDay = dueDay > lastDayOfMonth ? lastDayOfMonth : dueDay;
+
+            return new DateTime(year, month, safeDueDay, 12, 0, 0, DateTimeKind.Utc);
+        }
+
+        private static int GetCycleIntervalInMonths(BillingCycle billingCycle)
+        {
+            return billingCycle switch
+            {
+                BillingCycle.Monthly => 1,
+                BillingCycle.Quarterly => 3,
+                BillingCycle.SemiAnnual => 6,
+                BillingCycle.Annual => 12,
+                _ => 1
+            };
+        }
+
+        private static DateTime GetNextDueDate(Client client, DateTime now)
+        {
+            var interval = GetCycleIntervalInMonths(client.BillingCycle);
+
+            var start = DateTime.SpecifyKind(client.BillingStartDate.Date, DateTimeKind.Utc);
+
+            var candidate = BuildDueDate(start.Year, start.Month, client.DueDay);
+
+            while (candidate.Date < now.Date)
+            {
+                candidate = candidate.AddMonths(interval);
+                candidate = BuildDueDate(candidate.Year, candidate.Month, client.DueDay);
+            }
+
+            return candidate;
         }
     }
 }

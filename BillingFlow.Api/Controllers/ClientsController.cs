@@ -59,6 +59,16 @@ namespace BillingFlow.Api.Controllers
             return NoContent();
         }
 
+        [HttpGet("{id}/billing-summary")]
+        public async Task<IActionResult> GetBillingSummary(Guid id)
+        {
+            var userId = GetUserId();
+
+            var result = await _clientService.GetBillingSummaryAsync(userId, id);
+
+            return Ok(result);
+        }
+
         private Guid GetUserId()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

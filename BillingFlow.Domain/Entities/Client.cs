@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BillingFlow.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -23,7 +24,8 @@ namespace BillingFlow.Domain.Entities
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+        public BillingCycle BillingCycle { get; set; } = BillingCycle.Monthly;
+        public DateTime BillingStartDate { get; set; } = DateTime.UtcNow;
         public ICollection<InvoiceRecord> InvoiceRecords { get; set; } = new List<InvoiceRecord>();
     }
 }

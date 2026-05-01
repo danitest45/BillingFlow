@@ -1,6 +1,7 @@
 ﻿using BillingFlow.Application.Interfaces;
 using BillingFlow.Domain.Entities;
 using BillingFlow.Domain.Enums;
+using BillingFlow.Domain.Helper;
 using BillingFlow.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -47,6 +48,9 @@ namespace BillingFlow.Infrastructure.Services
 
             foreach (var client in clients)
             {
+                if (!BillingCycleHelper.ShouldGenerateForMonth(client, year, month))
+                    continue;
+
                 if (existingClientIdsSet.Contains(client.Id))
                     continue;
 

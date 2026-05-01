@@ -22,7 +22,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_ShouldCreateUserAndReturnToken()
     {
         using var context = TestDbContextFactory.CreateContext();
-        var service = new AuthService(context, CreateConfiguration());
+        var service = new AuthService(context, CreateConfiguration(), null, null);
 
         var response = await service.RegisterAsync(new RegisterRequestDto
         {
@@ -50,7 +50,7 @@ public class AuthServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new AuthService(context, CreateConfiguration());
+        var service = new AuthService(context, CreateConfiguration(), null, null);
 
         var ex = await Assert.ThrowsAsync<Exception>(() => service.RegisterAsync(new RegisterRequestDto
         {
@@ -66,7 +66,7 @@ public class AuthServiceTests
     public async Task LoginAsync_ShouldThrow_WhenUserDoesNotExist()
     {
         using var context = TestDbContextFactory.CreateContext();
-        var service = new AuthService(context, CreateConfiguration());
+        var service = new AuthService(context, CreateConfiguration(), null, null);
 
         var ex = await Assert.ThrowsAsync<Exception>(() => service.LoginAsync(new LoginRequestDto
         {
@@ -90,7 +90,7 @@ public class AuthServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new AuthService(context, CreateConfiguration());
+        var service = new AuthService(context, CreateConfiguration(), null, null);
 
         var ex = await Assert.ThrowsAsync<Exception>(() => service.LoginAsync(new LoginRequestDto
         {
@@ -115,7 +115,7 @@ public class AuthServiceTests
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
-        var service = new AuthService(context, CreateConfiguration());
+        var service = new AuthService(context, CreateConfiguration(), null, null);
 
         var response = await service.LoginAsync(new LoginRequestDto
         {

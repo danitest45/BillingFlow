@@ -37,6 +37,9 @@ namespace BillingFlow.Infrastructure.Services
 
             var now = DateTime.UtcNow;
 
+            if (!BillingCycleHelper.ShouldGenerateForMonth(client, now.Year, now.Month))
+                throw new Exception("Este cliente não possui cobrança prevista para este mês.");
+
             var existingInvoice = await _context.InvoiceRecords
                 .FirstOrDefaultAsync(i =>
                     i.ClientId == client.Id &&
